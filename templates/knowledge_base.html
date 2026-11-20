@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}企业知识库 - GEO Growth OS{% endblock %}
+{% block page_title %}📚 企业知识库搭建管理{% endblock %}
+
+{% block top_actions %}
+<button class="btn btn-outline" onclick="document.getElementById('jsonldModal').style.display='block'">📄 导出JSON-LD</button>
+<button class="btn btn-primary" onclick="openAddField()">➕ 添加字段</button>
+{% endblock %}
+
+{% block content %}
+<!-- 知识库完整度 -->
+<div class="kb-completeness-card">
+    <div class="completeness-info">
+        <h3>为AI世界打造品牌官方数字身份证</h3>
+        <div class="completeness-meter">
+            <div class="meter-label">
+                <span>完整度</span>
+                <span class="meter-value">{{ kb.completeness }}%</span>
+            </div>
+            <div class="meter-bar">
+                <div class="meter-fill" style="width:{{ kb.completeness }}%"></div>
+            </div>
+        </div>
+        <p class="completeness-desc">
+            ✅ 一次录入核心信息，确保AI生成内容准确统一、品牌口径一致<br>
+            ✅ 可按产品/服务生成结构化知识，支撑GEO内容优化
+        </p>
+    </div>
+    <div class="completeness-stats">
+        <div class="comp-stat">
+            <span class="comp-stat-value">{{ kb.filled_count }}</span>
+            <span class="comp-stat-label">已填写字段</span>
+        </div>
+        <div class="comp-stat">
+            <span class="comp-stat-value">{{ kb.total_fields }}</span>
+            <span class="comp-stat-label">建议总字段</span>
+        </div>
+    </div>
+</div>
+
+<!-- 分类知识库 -->
+{% for cat_key, items in kb.data.items() %}
+<div class="card mt-3">
+    <div class="card-header">
+        <h3>{{ kb.categories.get(cat_key, cat_key) }}</h3>
+        <span class="text-muted">{{ items|length }} 个字段</span>
+    </div>
+    <div class="card-body">
+        <div class="kb-grid">
+            {% for item in items %}
+            <div class="kb-field">
+                <div class="kb-field-header">
+                    <label>{{ item.field }}</label>
+                    <div class="kb-field-actions">
+                        <button class="btn-icon" onclick="editField({{ item.id }}, '{{ item.field }}', `{{ item.value }}`)">✏️</button>
+                        <button class="btn-icon" onclick="deleteField({{ item.id }})">🗑️</button>
+                    </div>
+                </div>
+                <div class="kb-field-value">{{ item.value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 添加/编辑字段模态框 -->
+<div id="fieldModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">添加字段</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="fieldId">
+            <div class="form-group">
+                <label>字段名称</label>
+                <input type="text" id="fieldName" placeholder="如：公司名称、核心产品...">
+            </div>
+            <div class="form-group">
+                <label>字段值</label>
+                <textarea id="fieldValue" rows="3" placeholder="请输入字段内容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <select id="fieldCategory">
+                    {% for key, name in kb.categories.items() %}
+                    <option value="{{ key }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveField()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON-LD导出模态框 -->
+<div id="jsonldModal" class="modal" style="display:none;">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3>📄 JSON-LD 结构化数据导出</h3>
+            <button class="modal-close" onclick="document.getElementById('jsonldModal').style.display='none'">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="text-muted">以下JSON-LD可被各大AI模型直接识别，建议部署到官网 &lt;head&gt; 中</p>
+            <pre class="code-block"><code id="jsonldCode">{{ jsonld }}</code></pre>
+            <button class="btn btn-primary" onclick="copyJsonLd()">📋 复制到剪贴板</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddField() {
+    document.getElementById('modalTitle').textContent = '添加字段';
+    document.getElementById('fieldId').value = '';
+    document.getElementById('fieldName').value = '';
+    document.getElementById('fieldValue').value = '';
+    document.getElementById('fieldCategory').value = 'general';
+    document.getElementById('fieldModal').style.display = 'block';
+}
+
+function editField(id, name, value) {
+    document.getElementById('modalTitle').textContent = '编辑字段';
+    document.getElementById('fieldId').value = id;
+    document.getElementById('fieldName').value = name;
+    document.getElementById('fieldValue').value = value;
+    document.getElementById('fieldModal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('fieldModal').style.display = 'none';
+}
+
+async function saveField() {
+    const id = document.getElementById('fieldId').value;
+    const name = document.getElementById('fieldName').value.trim();
+    const value = document.getElementById('fieldValue').value.trim();
+    const category = document.getElementById('fieldCategory').value;
+
+    if (!name) { alert('请输入字段名称'); return; }
+
+    try {
+        const response = await fetch('/api/knowledge/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field_name: name, field_value: value, category })
+        });
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        }
+    } catch (err) {
+        alert('保存失败: ' + err.message);
+    }
+}
+
+async function deleteField(id) {
+    if (!confirm('确定删除此字段？')) return;
+    try {
+        const response = await fetch(`/api/knowledge/delete/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) location.reload();
+    } catch (err) {
+        alert('删除失败: ' + err.message);
+    }
+}
+
+function copyJsonLd() {
+    const text = document.getElementById('jsonldCode').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('已复制到剪贴板！');
+    });
+}
+</script>
+{% endblock %}

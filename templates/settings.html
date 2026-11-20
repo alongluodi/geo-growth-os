@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}系统管理 - GEO Growth OS{% endblock %}
+{% block page_title %}⚙️ 系统管理{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <!-- AI配置 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🤖 AI模型配置</h3>
+            <span class="text-muted">配置AI接口用于内容生成和诊断</span>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>API Base URL</label>
+                    <input type="text" id="cfg_api_base" value="{{ configs.get('ai_api_base', '') }}" placeholder="https://api.openai.com/v1">
+                </div>
+                <div class="form-group">
+                    <label>AI模型</label>
+                    <input type="text" id="cfg_ai_model" value="{{ configs.get('ai_model', '') }}" placeholder="gpt-4o">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>API Key {% if has_api_key %}<span class="tag tag-green">已配置</span>{% else %}<span class="tag tag-gray">未配置</span>{% endif %}</label>
+                <input type="password" id="cfg_api_key" value="" placeholder="{% if has_api_key %}已保存，留空表示不修改{% else %}sk-...{% endif %}">
+                <small class="text-muted">密钥仅展示状态不回显明文，留空保存不会覆盖已配置密钥</small>
+            </div>
+            <button class="btn btn-primary" onclick="saveConfig('ai_api_base', 'cfg_api_base')">保存AI配置</button>
+        </div>
+    </div>
+
+    <!-- 站点配置 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>🌐 站点配置</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label>站点名称</label>
+                <input type="text" id="cfg_site_name" value="{{ configs.get('site_name', 'GEO Growth OS') }}">
+            </div>
+            <button class="btn btn-primary" onclick="saveConfig('site_name', 'cfg_site_name')">💾 保存站点配置</button>
+        </div>
+    </div>
+
+    <!-- 用户管理 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>👥 用户管理</h3>
+            <span class="text-muted">共 {{ users|length }} 个用户</span>
+        </div>
+        <div class="card-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>角色</th>
+                        <th>所属公司</th>
+                        <th>创建时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td><span class="tag tag-blue">{{ user.role }}</span></td>
+                        <td>{{ user.company_id }}</td>
+                        <td>{{ user.created_at[:10] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>ℹ️ 系统信息</h3>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">系统名称</span>
+                    <span class="info-value">GEO Growth OS</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">版本</span>
+                    <span class="info-value">v1.0.0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">架构</span>
+                    <span class="info-value">Flask + SQLite + Vanilla JS</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">许可证</span>
+                    <span class="info-value">MIT Open Source</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">部署方式</span>
+                    <span class="info-value">单机 / Docker / 私有化</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">数据安全</span>
+                    <span class="info-value">全栈私有化 · 数据不出内网</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveConfig(key, inputId) {
+    const value = document.getElementById(inputId).value.trim();
+    // API Key 留空表示不修改，避免误覆盖
+    if (key === 'ai_api_key' && !value) {
+        alert('未输入新 API Key，已保留原配置');
+        return;
+    }
+    try {
+        const response = await fetch('/api/config/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value })
+        });
+        const data = await response.json();
+        if (data.success) {
+            if (key === 'ai_api_key') {
+                document.getElementById(inputId).value = '';
+                alert('API Key 已保存（不再回显）');
+            } else {
+                alert('配置已保存！');
+            }
+        } else {
+            alert('保存失败: ' + (data.error || '未知错误'));
+        }
+    } catch (err) {
+        alert('保存失败: ' + err.message);
+    }
+}
+</script>
+{% endblock %}

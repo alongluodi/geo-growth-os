@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}内容资产 - GEO Growth OS{% endblock %}
+{% block page_title %}📁 内容资产沉淀{% endblock %}
+
+{% block content %}
+<!-- 统计概览 -->
+<div class="stats-grid stats-grid-3">
+    <div class="stat-card stat-blue">
+        <div class="stat-value">{{ articles|length }}</div>
+        <div class="stat-label">GEO文章总数</div>
+    </div>
+    <div class="stat-card stat-purple">
+        <div class="stat-value">{{ videos|length }}</div>
+        <div class="stat-label">GEO视频脚本</div>
+    </div>
+    <div class="stat-card stat-green">
+        <div class="stat-value">{{ citations|length }}</div>
+        <div class="stat-label">引用存证</div>
+    </div>
+</div>
+
+<!-- GEO文章资产 -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>📝 GEO文章资产</h3>
+        <a href="{{ url_for('ai_writing_page') }}" class="btn btn-sm btn-primary">✏️ 新建文章</a>
+    </div>
+    <div class="card-body">
+        {% if articles %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>标题</th>
+                    <th>类型</th>
+                    <th>关键词</th>
+                    <th>状态</th>
+                    <th>发布平台</th>
+                    <th>创建时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td><strong>{{ article.title }}</strong></td>
+                    <td><span class="tag tag-blue">{{ article.article_type }}</span></td>
+                    <td>
+                        {% if article.target_keywords %}
+                            {% for kw in article.target_keywords.split(',')[:3] %}
+                            <span class="kw-tag-small">{{ kw.strip() }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ 'green' if article.status == 'published' else 'blue' }}">
+                            {{ '已发布' if article.status == 'published' else '草稿' }}
+                        </span>
+                    </td>
+                    <td>{{ article.platform or '-' }}</td>
+                    <td>{{ article.created_at[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>暂无文章，去创作第一篇GEO文章吧！</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GEO视频资产 -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>🎬 GEO视频资产</h3>
+        <a href="{{ url_for('ai_video_page') }}" class="btn btn-sm btn-primary">🎥 新建脚本</a>
+    </div>
+    <div class="card-body">
+        {% if videos %}
+        <div class="video-asset-grid">
+            {% for video in videos %}
+            <div class="video-asset-card">
+                <div class="video-asset-header">
+                    <h4>{{ video.title }}</h4>
+                    <span class="tag tag-purple">{{ video.duration }}</span>
+                </div>
+                <pre class="video-script-preview">{{ video.script[:300] }}...</pre>
+                <div class="video-asset-footer">
+                    <span class="badge badge-{{ 'green' if video.status == 'published' else 'blue' }}">
+                        {{ '已发布' if video.status == 'published' else '草稿' }}
+                    </span>
+                    <span class="text-muted">{{ video.created_at[:10] }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>暂无视频脚本</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 引用存证 -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>🔖 大模型引用截图存证</h3>
+        <button class="btn btn-sm btn-outline" onclick="addCitation()">➕ 添加存证</button>
+    </div>
+    <div class="card-body">
+        {% if citations %}
+        <div class="citation-grid">
+            {% for cit in citations %}
+            <div class="citation-card">
+                <div class="citation-source">{{ cit.source_name }}</div>
+                <div class="citation-type">{{ cit.source_type }}</div>
+                <div class="citation-desc">{{ cit.description }}</div>
+                {% if cit.url %}
+                <a href="{{ cit.url }}" target="_blank" class="citation-link">🔗 查看原文</a>
+                {% endif %}
+                <div class="citation-date">{{ cit.created_at[:10] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span style="font-size:36px">📸</span>
+            <p>暂无引用存证记录</p>
+            <p class="text-muted">当AI大模型引用您的品牌内容时，截图保存作为存证</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加存证模态框 -->
+<div id="citationModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ 添加引用存证</h3>
+            <button class="modal-close" onclick="document.getElementById('citationModal').style.display='none'">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>来源名称</label>
+                <input type="text" id="citSource" placeholder="如：豆包AI回答截图">
+            </div>
+            <div class="form-group">
+                <label>来源类型</label>
+                <select id="citType">
+                    <option value="doubao">豆包</option>
+                    <option value="qianwen">通义千问</option>
+                    <option value="wenxin">文心一言</option>
+                    <option value="kimi">Kimi</option>
+                    <option value="yuanbao">腾讯元宝</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <textarea id="citDesc" rows="2" placeholder="描述引用内容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>原文链接</label>
+                <input type="url" id="citUrl" placeholder="https://...">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('citationModal').style.display='none'">取消</button>
+            <button class="btn btn-primary" onclick="saveCitation()">保存</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addCitation() {
+    document.getElementById('citationModal').style.display = 'block';
+}
+
+function saveCitation() {
+    const source = document.getElementById('citSource').value.trim();
+    const type = document.getElementById('citType').value;
+    const desc = document.getElementById('citDesc').value.trim();
+    const url = document.getElementById('citUrl').value.trim();
+
+    if (!source) { alert('请输入来源名称'); return; }
+
+    // 演示用 - 实际应保存到数据库
+    alert('✅ 存证已添加！（演示模式）');
+    document.getElementById('citationModal').style.display = 'none';
+}
+</script>
+{% endblock %}

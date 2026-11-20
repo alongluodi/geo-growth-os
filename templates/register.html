@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block login_content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">
+                <span style="font-size:48px">🚀</span>
+            </div>
+            <h1>注册 GEO Growth OS</h1>
+            <p>创建企业账号，开启AI增长之旅</p>
+        </div>
+
+        <form class="login-form" method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="form-group">
+                <label>企业名称</label>
+                <input type="text" name="company_name" placeholder="请输入企业全称" required>
+            </div>
+            <div class="form-group">
+                <label>所属行业</label>
+                <input type="text" name="industry" placeholder="如：软件和信息技术服务业">
+            </div>
+            <div class="form-group">
+                <label>管理员用户名</label>
+                <input type="text" name="username" placeholder="设置登录用户名" required>
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" name="password" placeholder="设置登录密码（至少6位）" required>
+            </div>
+            <div class="form-group">
+                <label>联系电话</label>
+                <input type="text" name="contact_phone" placeholder="选填">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">注 册</button>
+        </form>
+
+        <div class="login-footer">
+            <p style="margin-top:12px"><a href="{{ url_for('login') }}" style="color:#6366f1;text-decoration:none">← 已有账号？返回登录</a></p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- 背景装饰 -->
+    <div class="login-bg">
+        <div class="bg-orb orb-1"></div>
+        <div class="bg-orb orb-2"></div>
+        <div class="bg-orb orb-3"></div>
+    </div>
+</div>
+{% endblock %}

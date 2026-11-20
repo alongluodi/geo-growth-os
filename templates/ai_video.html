@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}AI视频创作 - GEO Growth OS{% endblock %}
+{% block page_title %}🎬 AI视频创作{% endblock %}
+
+{% block top_actions %}
+<button class="btn btn-primary" onclick="openVideoModal()">🎥 生成视频脚本</button>
+{% endblock %}
+
+{% block content %}
+<div class="video-container">
+    <div class="card">
+        <div class="card-header">
+            <h3>🎬 GEO视频资产</h3>
+            <span class="text-muted">共 {{ videos|length }} 个脚本</span>
+        </div>
+        <div class="card-body">
+            {% if videos %}
+            <div class="video-grid">
+                {% for video in videos %}
+                <div class="video-card">
+                    <div class="video-card-header">
+                        <span class="tag tag-purple">⏱️ {{ video.duration }}</span>
+                        <span class="tag tag-{{ 'green' if video.status == 'published' else 'blue' }}">
+                            {{ '已发布' if video.status == 'published' else '草稿' }}
+                        </span>
+                    </div>
+                    <h4>{{ video.title }}</h4>
+                    <div class="video-card-meta">
+                        <span>📅 {{ video.created_at[:10] }}</span>
+                    </div>
+                    <div class="video-preview">
+                        <pre>{{ video.script[:200] }}...</pre>
+                    </div>
+                    <div class="video-actions">
+                        <button class="btn btn-sm btn-outline" onclick="viewVideoScript({{ video.id }})">👁️ 查看完整脚本</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <span style="font-size:48px">🎬</span>
+                <p>还没有视频脚本，点击右上角「生成视频脚本」开始创作</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 生成视频脚本模态框 -->
+<div id="videoModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🎥 AI生成短视频脚本</h3>
+            <button class="modal-close" onclick="document.getElementById('videoModal').style.display='none'">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>产品信息 *</label>
+                <textarea id="productInfo" rows="3" placeholder="如：AI客服系统 - 帮助企业自动化客户服务，支持多语言，准确率99%"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>视频时长</label>
+                    <select id="videoDuration">
+                        <option value="15秒">15秒（短视频）</option>
+                        <option value="30秒" selected>30秒（标准）</option>
+                        <option value="60秒">60秒（详细说明）</option>
+                        <option value="90秒">90秒（深度展示）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>风格</label>
+                    <select id="videoStyle">
+                        <option value="professional">专业商务</option>
+                        <option value="casual">轻松活泼</option>
+                        <option value="tech">科技感</option>
+                        <option value="storytelling">故事叙述</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg" onclick="generateVideo()" id="videoGenBtn">
+                🚀 AI生成脚本
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 视频脚本详情模态框 -->
+<div id="videoDetailModal" class="modal" style="display:none;">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h3 id="videoDetailTitle">视频脚本详情</h3>
+            <button class="modal-close" onclick="document.getElementById('videoDetailModal').style.display='none'">×</button>
+        </div>
+        <div class="modal-body">
+            <pre id="videoScriptContent" class="code-block" style="white-space:pre-wrap;"></pre>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="copyVideoScript()">📋 复制</button>
+                <button class="btn btn-primary" onclick="downloadVideoScript()">⬇️ 下载</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 生成中 -->
+<div id="videoLoading" class="modal" style="display:none;">
+    <div class="modal-content" style="text-align:center;padding:40px;">
+        <div class="spinner-large"></div>
+        <h3 style="margin-top:20px;">🎬 AI正在编写视频脚本...</h3>
+        <p class="text-muted">正在规划镜头、台词和节奏</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentVideoScript = '';
+
+function openVideoModal() {
+    document.getElementById('videoModal').style.display = 'block';
+}
+
+async function generateVideo() {
+    const productInfo = document.getElementById('productInfo').value.trim();
+    const duration = document.getElementById('videoDuration').value;
+    const style = document.getElementById('videoStyle').value;
+
+    if (!productInfo) { alert('请输入产品信息'); return; }
+
+    document.getElementById('videoGenBtn').disabled = true;
+    document.getElementById('videoLoading').style.display = 'block';
+
+    try {
+        const response = await fetch('/api/video/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_info: productInfo, duration, style })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            currentVideoScript = data.video.full_script;
+            document.getElementById('videoLoading').style.display = 'none';
+            document.getElementById('videoModal').style.display = 'none';
+            alert('✅ 视频脚本生成成功！');
+            location.reload();
+        } else {
+            alert('生成失败: ' + (data.error || '未知错误'));
+        }
+    } catch (err) {
+        alert('网络错误: ' + err.message);
+    }
+    
+    document.getElementById('videoGenBtn').disabled = false;
+    document.getElementById('videoLoading').style.display = 'none';
+}
+
+async function viewVideoScript(id) {
+    try {
+        const response = await fetch(`/api/article/${id}`);
+        // 视频也用类似接口获取
+        const videos = {{ videos|tojson }};
+        const video = videos.find(v => v.id === id);
+        if (video) {
+            currentVideoScript = video.script;
+            document.getElementById('videoDetailTitle').textContent = video.title;
+            document.getElementById('videoScriptContent').textContent = video.script;
+            document.getElementById('videoDetailModal').style.display = 'block';
+        }
+    } catch (err) {
+        alert('加载失败: ' + err.message);
+    }
+}
+
+function copyVideoScript() {
+    navigator.clipboard.writeText(currentVideoScript).then(() => {
+        alert('已复制到剪贴板！');
+    });
+}
+
+function downloadVideoScript() {
+    const title = document.getElementById('videoDetailTitle').textContent;
+    const blob = new Blob([currentVideoScript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

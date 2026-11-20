@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}GEO Growth OS - 生成式引擎优化平台{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if user_info %}
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🚀</span>
+                <div>
+                    <h1>GEO Growth OS</h1>
+                    <small>生成式引擎优化平台</small>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <span class="nav-icon">📊</span>
+                <span>主控仪表盘</span>
+            </a>
+            <a href="{{ url_for('ai_diagnostic_page') }}" class="nav-item {% if 'diagnostic' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">🔍</span>
+                <span>AI可见度诊断</span>
+            </a>
+            <a href="{{ url_for('knowledge_base_page') }}" class="nav-item {% if 'knowledge' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">📚</span>
+                <span>企业知识库</span>
+            </a>
+            <a href="{{ url_for('ai_writing_page') }}" class="nav-item {% if 'writing' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">✍️</span>
+                <span>AI文章写作</span>
+            </a>
+            <a href="{{ url_for('ai_video_page') }}" class="nav-item {% if 'video' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">🎬</span>
+                <span>AI视频创作</span>
+            </a>
+            <a href="{{ url_for('content_assets_page') }}" class="nav-item {% if 'content' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">📁</span>
+                <span>内容资产</span>
+            </a>
+            <a href="{{ url_for('settings_page') }}" class="nav-item {% if 'settings' in request.endpoint|default('') %}active{% endif %}">
+                <span class="nav-icon">⚙️</span>
+                <span>系统管理</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ user_info.user.username[0]|upper }}</div>
+                <div>
+                    <div class="user-name">{{ user_info.user.username }}</div>
+                    <div class="user-role">{{ user_info.company.name if user_info.company else '' }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">退出</a>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <header class="top-bar">
+            <h2>{% block page_title %}{% endblock %}</h2>
+            <div class="top-actions">
+                {% block top_actions %}{% endblock %}
+            </div>
+        </header>
+        <div class="content-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% else %}
+    <!-- 登录页 -->
+    {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+    // 全局 fetch 拦截：自动为写请求附加 CSRF Token
+    (function () {
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken || !csrfToken.content) return;
+        var origFetch = window.fetch;
+        window.fetch = function (url, options) {
+            options = options || {};
+            var method = (options.method || 'GET').toUpperCase();
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].indexOf(method) >= 0) {
+                options.headers = options.headers || {};
+                options.headers['X-CSRF-Token'] = csrfToken.content;
+            }
+            return origFetch.call(this, url, options);
+        };
+    })();
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

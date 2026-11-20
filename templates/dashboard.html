@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}主控仪表盘 - GEO Growth OS{% endblock %}
+{% block page_title %}📊 主控仪表盘{% endblock %}
+
+{% block top_actions %}
+<button class="btn btn-outline" onclick="location.reload()">🔄 刷新数据</button>
+<a href="{{ url_for('ai_diagnostic_page') }}" class="btn btn-primary">🔍 立即诊断</a>
+{% endblock %}
+
+{% block content %}
+<!-- 欢迎区 -->
+<div class="welcome-banner">
+    <div>
+        <h2>👋 今天，让更多AI主动推荐你的品牌</h2>
+        <p>{{ user_info.company.name if user_info.company else 'GEO Growth OS' }} 的增长工作台已就绪：诊断短板、生产可被引用的内容，一步步把询盘做起来。</p>
+    </div>
+    <div class="welcome-actions">
+        <a href="{{ url_for('ai_diagnostic_page') }}" class="btn btn-light">立刻做可见度诊断 →</a>
+    </div>
+</div>
+
+<!-- 核心指标卡片 -->
+<div class="stats-grid">
+    <div class="stat-card stat-blue">
+        <div class="stat-value">{{ overview.article_count }}</div>
+        <div class="stat-label">GEO文章资产</div>
+        <div class="stat-trend">已发布 {{ overview.published_count }}</div>
+    </div>
+    <div class="stat-card stat-purple">
+        <div class="stat-value">{{ overview.video_count }}</div>
+        <div class="stat-label">GEO视频资产</div>
+        <div class="stat-trend">脚本已生成</div>
+    </div>
+    <div class="stat-card stat-green">
+        <div class="stat-value">{{ overview.latest_visibility_score }}</div>
+        <div class="stat-label">AI可见度评分</div>
+        <div class="stat-trend">最新诊断得分</div>
+    </div>
+    <div class="stat-card stat-orange">
+        <div class="stat-value">{{ overview.kb_completeness }}%</div>
+        <div class="stat-label">知识库完整度</div>
+        <div class="stat-trend">{{ overview.kb_items }}/20 字段已填</div>
+    </div>
+</div>
+
+<!-- 三大核心流程 -->
+<div class="flow-section">
+    <h3>🎯 三大核心增长引擎</h3>
+    <div class="flow-cards">
+        <div class="flow-card">
+            <div class="flow-number">01</div>
+            <h4>先诊断，再成交</h4>
+            <p>摸清品牌在豆包、文心、通义等模型里的可见度与竞品差距，给出可执行增长建议。</p>
+            <a href="{{ url_for('ai_diagnostic_page') }}" class="flow-link">马上开始 →</a>
+        </div>
+        <div class="flow-card">
+            <div class="flow-number">02</div>
+            <h4>内容即销量弹药</h4>
+            <p>基于企业知识库一键生成可被模型引用的文章与视频，把专业能力变成获客内容。</p>
+            <a href="{{ url_for('ai_writing_page') }}" class="flow-link">马上开始 →</a>
+        </div>
+        <div class="flow-card">
+            <div class="flow-number">03</div>
+            <h4>知识库打底</h4>
+            <p>把企业信息整理成结构化知识库，导出 JSON-LD，让大模型有据可引。</p>
+            <a href="{{ url_for('knowledge_base_page') }}" class="flow-link">马上开始 →</a>
+        </div>
+    </div>
+</div>
+
+<!-- 可见度趋势图 -->
+<div class="dashboard-row">
+    <div class="card">
+        <div class="card-header">
+            <h3>📈 AI可见度趋势</h3>
+        </div>
+        <div class="card-body">
+            <canvas id="visibilityChart" height="100"></canvas>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- 最近文章 -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>📝 最近GEO文章</h3>
+        <a href="{{ url_for('ai_writing_page') }}" class="card-link">写新文章 →</a>
+    </div>
+    <div class="card-body">
+        <div class="article-list">
+            <div class="article-item">
+                <div class="article-title">AI搜索时代的品牌突围：GEO优化全攻略</div>
+                <div class="article-meta">
+                    <span class="tag tag-blue">行业洞察</span>
+                    <span>百家号</span>
+                    <span>2026/08/05</span>
+                </div>
+            </div>
+            <div class="article-item">
+                <div class="article-title">2026企业AI营销白皮书</div>
+                <div class="article-meta">
+                    <span class="tag tag-green">白皮书</span>
+                    <span>公众号</span>
+                    <span>2026/07/30</span>
+                </div>
+            </div>
+            <div class="article-item">
+                <div class="article-title">大模型引用偏好研究报告</div>
+                <div class="article-meta">
+                    <span class="tag tag-purple">研究报告</span>
+                    <span>草稿</span>
+                    <span>2026/08/01</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // 可见度趋势图
+    const trendData = {{ trend|safe }};
+    const ctx = document.getElementById('visibilityChart').getContext('2d');
+    
+    const labels = trendData.length > 0 ? trendData.map(d => d.date) : ['暂无数据'];
+    const scores = trendData.length > 0 ? trendData.map(d => d.score) : [0];
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'AI可见度综合评分',
+                data: scores,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#6366f1'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { min: 0, max: 100, ticks: { stepSize: 20 } }
+            }
+        }
+    });
+</script>
+{% endblock %}

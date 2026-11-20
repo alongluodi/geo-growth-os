@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}AI文章写作 - GEO Growth OS{% endblock %}
+{% block page_title %}✍️ AI文章写作{% endblock %}
+
+{% block top_actions %}
+<button class="btn btn-primary" onclick="openWriteModal()">✨ 新建文章</button>
+{% endblock %}
+
+{% block content %}
+<div class="writing-container">
+    <!-- 文章列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📝 GEO文章资产</h3>
+            <span class="text-muted">共 {{ articles|length }} 篇</span>
+        </div>
+        <div class="card-body">
+            {% if articles %}
+            <div class="article-grid">
+                {% for article in articles %}
+                <div class="article-card {% if article.status == 'published' %}published{% endif %}">
+                    <div class="article-card-header">
+                        <span class="tag tag-{{ 'green' if article.status == 'published' else 'blue' }}">
+                            {{ '已发布' if article.status == 'published' else article.article_type }}
+                        </span>
+                        <div class="article-actions">
+                            <button class="btn-icon" onclick="viewArticle({{ article.id }})">👁️</button>
+                            <button class="btn-icon" onclick="deleteArticle({{ article.id }})">🗑️</button>
+                        </div>
+                    </div>
+                    <h4>{{ article.title }}</h4>
+                    <div class="article-card-meta">
+                        <span>📅 {{ article.created_at[:10] }}</span>
+                        {% if article.platform %}
+                        <span>📡 {{ article.platform }}</span>
+                        {% endif %}
+                    </div>
+                    {% if article.target_keywords %}
+                    <div class="article-keywords">
+                        {% for kw in article.target_keywords.split(',') %}
+                        <span class="kw-tag">{{ kw.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <span style="font-size:48px">📝</span>
+                <p>还没有文章，点击右上角「新建文章」开始创作</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 写文章模态框 -->
+<div id="writeModal" class="modal" style="display:none;">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3>✨ AI生成GEO文章</h3>
+            <button class="modal-close" onclick="closeWriteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>文章标题 *</label>
+                <input type="text" id="articleTitle" placeholder="如：AI搜索时代的品牌突围策略">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>文章类型</label>
+                    <select id="articleType">
+                        <option value="industry_insight">行业洞察</option>
+                        <option value="product_review">产品评测</option>
+                        <option value="case_study">案例研究</option>
+                        <option value="whitepaper">行业白皮书</option>
+                        <option value="thought_leadership">思想领导力</option>
+                        <option value="faq_optimization">FAQ优化</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>目标关键词（逗号分隔）</label>
+                    <input type="text" id="articleKeywords" placeholder="如：GEO优化,AI搜索,品牌可见度">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>创作方向/补充说明</label>
+                <textarea id="articleDirection" rows="2" placeholder="如：侧重B2B企业视角，强调ROI数据..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-lg" onclick="generateArticle()" id="genBtn">
+                🚀 AI一键生成
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 文章详情模态框 -->
+<div id="articleModal" class="modal" style="display:none;">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h3 id="viewArticleTitle">文章详情</h3>
+            <button class="modal-close" onclick="document.getElementById('articleModal').style.display='none'">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="viewArticleContent" class="article-content"></div>
+            <div class="article-actions-bar">
+                <button class="btn btn-outline" onclick="copyArticle()">📋 复制内容</button>
+                <button class="btn btn-primary" onclick="downloadArticle()">⬇️ 下载Markdown</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 生成中加载 -->
+<div id="genLoading" class="modal" style="display:none;">
+    <div class="modal-content" style="text-align:center;padding:40px;">
+        <div class="spinner-large"></div>
+        <h3 style="margin-top:20px;">🤖 AI正在创作中...</h3>
+        <p class="text-muted">基于企业知识库生成高质量GEO文章</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentArticleContent = '';
+
+function openWriteModal() {
+    document.getElementById('writeModal').style.display = 'block';
+}
+
+function closeWriteModal() {
+    document.getElementById('writeModal').style.display = 'none';
+}
+
+async function generateArticle() {
+    const title = document.getElementById('articleTitle').value.trim();
+    const type = document.getElementById('articleType').value;
+    const keywords = document.getElementById('articleKeywords').value.trim();
+    const direction = document.getElementById('articleDirection').value.trim();
+
+    if (!title) { alert('请输入文章标题'); return; }
+
+    document.getElementById('genBtn').disabled = true;
+    document.getElementById('genLoading').style.display = 'block';
+
+    try {
+        const response = await fetch('/api/article/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, article_type: type, direction, keywords })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            currentArticleContent = data.article.content;
+            document.getElementById('genLoading').style.display = 'none';
+            closeWriteModal();
+            alert(`✅ 文章生成成功！\nGEO优化得分: ${data.article.geo_score}\n字数: ${data.article.word_count}`);
+            location.reload();
+        } else {
+            alert('生成失败: ' + (data.error || '未知错误'));
+        }
+    } catch (err) {
+        alert('网络错误: ' + err.message);
+    }
+    
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('genLoading').style.display = 'none';
+}
+
+async function viewArticle(id) {
+    try {
+        const response = await fetch(`/api/article/${id}`);
+        const article = await response.json();
+        
+        document.getElementById('viewArticleTitle').textContent = article.title;
+        document.getElementById('viewArticleContent').innerHTML = 
+            article.content.replace(/\n/g, '<br>').replace(/## /g, '<h4>').replace(/# /g, '<h3>');
+        currentArticleContent = article.content;
+        document.getElementById('articleModal').style.display = 'block';
+    } catch (err) {
+        alert('加载失败: ' + err.message);
+    }
+}
+
+async function deleteArticle(id) {
+    if (!confirm('确定删除此文章？')) return;
+    try {
+        const response = await fetch(`/api/article/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) location.reload();
+    } catch (err) {
+        alert('删除失败: ' + err.message);
+    }
+}
+
+function copyArticle() {
+    navigator.clipboard.writeText(currentArticleContent).then(() => {
+        alert('已复制到剪贴板！');
+    });
+}
+
+function downloadArticle() {
+    const title = document.getElementById('viewArticleTitle').textContent;
+    const blob = new Blob([currentArticleContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title + '.md';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

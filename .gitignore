@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# SQLite 运行数据（含用户注册数据与配置，不提交）
+data/
+*.db
+*.db-journal
+
+# 运行时
+*.log
+.DS_Store
+.env
+
+# 编辑器
+.idea/
+.vscode/

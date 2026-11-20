@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}AI可见度诊断 - GEO Growth OS{% endblock %}
+{% block page_title %}🔍 AI可见度诊断{% endblock %}
+
+{% block top_actions %}
+<button class="btn btn-outline" onclick="loadHistory()">📋 历史记录</button>
+{% endblock %}
+
+{% block content %}
+<div class="diagnostic-container">
+    <!-- 诊断输入区 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🎯 开始品牌可见度诊断</h3>
+            <span class="text-muted">输入品牌信息，生成AI大模型可见度报告</span>
+        </div>
+        <div class="card-body">
+            <form id="diagnosticForm" class="diagnostic-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>品牌名称 *</label>
+                        <input type="text" id="brandName" placeholder="如：演示科技有限公司" required>
+                    </div>
+                    <div class="form-group">
+                        <label>竞品名称（逗号分隔）</label>
+                        <input type="text" id="competitors" placeholder="如：竞品A,竞品B,竞品C">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>核心关键词（逗号分隔）</label>
+                    <input type="text" id="keywords" placeholder="如：AI客服系统,智能数据分析,GEO优化">
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    🚀 开始诊断
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 诊断中加载动画 -->
+    <div id="diagnosticLoading" class="loading-container" style="display:none;">
+        <div class="loading-animation">
+            <div class="spinner"></div>
+            <p>正在检测各大AI模型对您品牌的认知...</p>
+            <div class="loading-platforms">
+                <span class="platform-tag">豆包</span>
+                <span class="platform-tag">通义千问</span>
+                <span class="platform-tag">文心一言</span>
+                <span class="platform-tag">Kimi</span>
+                <span class="platform-tag">腾讯元宝</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 诊断报告 -->
+    <div id="diagnosticReport" class="report-container" style="display:none;">
+        <!-- 综合评分 -->
+        <div class="report-header">
+            <div class="overall-score">
+                <div class="score-circle" id="overallScoreCircle">
+                    <span id="overallScore">0</span>
+                </div>
+                <div>
+                    <h3 id="healthLevel">--</h3>
+                    <p id="diagTime"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 各平台得分 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3>📊 各平台可见度详情</h3>
+            </div>
+            <div class="card-body">
+                <div class="platform-grid" id="platformGrid"></div>
+            </div>
+        </div>
+
+        <!-- 竞品对比 -->
+        <div class="card mt-3" id="competitorSection">
+            <div class="card-header">
+                <h3>🏆 竞品对比分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="competitor-list" id="competitorList"></div>
+            </div>
+        </div>
+
+        <!-- 关键词分析 -->
+        <div class="card mt-3" id="keywordSection">
+            <div class="card-header">
+                <h3>🔑 关键词覆盖分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="keyword-list" id="keywordList"></div>
+            </div>
+        </div>
+
+        <!-- 优化建议 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3>💡 优化建议</h3>
+            </div>
+            <div class="card-body">
+                <div class="recommendation-list" id="recommendationList"></div>
+            </div>
+        </div>
+
+        <!-- 快速行动 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3>⚡ 快速行动清单</h3>
+            </div>
+            <div class="card-body">
+                <div class="quick-wins" id="quickWins"></div>
+            </div>
+        </div>
+
+        <!-- 长期策略 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3>🗓️ 长期战略路线图</h3>
+            </div>
+            <div class="card-body">
+                <div class="strategy-list" id="strategyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="card mt-4" id="historyCard">
+        <div class="card-header">
+            <h3>📋 诊断历史</h3>
+        </div>
+        <div class="card-body">
+            <table class="data-table" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>品牌名称</th>
+                        <th>综合得分</th>
+                        <th>豆包</th>
+                        <th>千问</th>
+                        <th>文心</th>
+                        <th>Kimi</th>
+                        <th>诊断时间</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('diagnosticForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const brandName = document.getElementById('brandName').value.trim();
+    const competitors = document.getElementById('competitors').value.trim();
+    const keywords = document.getElementById('keywords').value.trim();
+    
+    if (!brandName) {
+        alert('请输入品牌名称');
+        return;
+    }
+
+    // 显示加载动画
+    document.getElementById('diagnosticForm').style.display = 'none';
+    document.getElementById('diagnosticLoading').style.display = 'flex';
+    document.getElementById('diagnosticReport').style.display = 'none';
+
+    try {
+        const response = await fetch('/api/diagnostic/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand_name: brandName, competitors, keywords })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            renderReport(data.report);
+        } else {
+            alert(data.error || '诊断失败');
+        }
+    } catch (err) {
+        alert('网络错误: ' + err.message);
+    }
+
+    // 隐藏加载动画
+    document.getElementById('diagnosticLoading').style.display = 'none';
+    document.getElementById('diagnosticForm').style.display = 'block';
+});
+
+function renderReport(report) {
+    document.getElementById('diagnosticReport').style.display = 'block';
+    
+    // 综合评分
+    const score = report.overall_score;
+    document.getElementById('overallScore').textContent = score;
+    document.getElementById('healthLevel').textContent = report.geo_health_level;
+    document.getElementById('diagTime').textContent = '诊断时间: ' + report.diagnostic_time;
+    
+    // 评分圆环颜色
+    const circle = document.getElementById('overallScoreCircle');
+    circle.className = 'score-circle';
+    if (score >= 80) circle.classList.add('score-excellent');
+    else if (score >= 60) circle.classList.add('score-good');
+    else if (score >= 40) circle.classList.add('score-average');
+    else circle.classList.add('score-poor');
+
+    // 平台详情
+    const platformGrid = document.getElementById('platformGrid');
+    platformGrid.innerHTML = '';
+    Object.values(report.platform_results).forEach(plat => {
+        const card = document.createElement('div');
+        card.className = 'platform-card';
+        card.innerHTML = `
+            <div class="platform-name">${plat.name}</div>
+            <div class="platform-score">${plat.mention_score}</div>
+            <div class="platform-status">${plat.brand_mentioned ? '✅ 已收录' : '❌ 未收录'}</div>
+            <div class="platform-accuracy">准确率: ${plat.accuracy_score}</div>
+            <div class="platform-rank">排名: ${plat.rank_position}</div>
+            <div class="platform-sentiment">情感: ${plat.sentiment}</div>
+            <div class="platform-details">${plat.details}</div>
+        `;
+        platformGrid.appendChild(card);
+    });
+
+    // 竞品对比
+    const compList = document.getElementById('competitorList');
+    if (report.competitor_analysis.length > 0) {
+        compList.innerHTML = report.competitor_analysis.map(c => `
+            <div class="competitor-item">
+                <span class="comp-name">${c.name}</span>
+                <div class="comp-bar">
+                    <div class="comp-bar-fill" style="width:${c.score}%"></div>
+                </div>
+                <span class="comp-score">${c.score}</span>
+                <span class="comp-trend">${c.trend}</span>
+            </div>
+        `).join('');
+    } else {
+        compList.innerHTML = '<p class="text-muted">未提供竞品信息</p>';
+    }
+
+    // 关键词分析
+    const kwList = document.getElementById('keywordList');
+    if (report.keyword_analysis.length > 0) {
+        kwList.innerHTML = report.keyword_analysis.map(k => `
+            <div class="keyword-item">
+                <span class="kw-name">${k.keyword}</span>
+                <div class="kw-bar">
+                    <div class="kw-bar-fill" style="width:${k.coverage}%"></div>
+                </div>
+                <span class="kw-coverage">${k.coverage}%</span>
+                <span class="kw-comp">竞争: ${k.competition}</span>
+                <div class="kw-rec">💡 ${k.recommendation}</div>
+            </div>
+        `).join('');
+    } else {
+        kwList.innerHTML = '<p class="text-muted">未提供关键词</p>';
+    }
+
+    // 优化建议
+    const recList = document.getElementById('recommendationList');
+    recList.innerHTML = report.recommendations.map(r => `
+        <div class="rec-item rec-${r.priority === '高' ? 'high' : 'normal'}">
+            <div class="rec-priority">${r.priority}优先级</div>
+            <div class="rec-category">${r.category}</div>
+            <div class="rec-action">${r.action}</div>
+            <div class="rec-impact">📈 ${r.expected_impact}</div>
+        </div>
+    `).join('');
+
+    // 快速行动
+    const qw = document.getElementById('quickWins');
+    qw.innerHTML = report.quick_wins.map(item => `<div class="quick-win-item">${item}</div>`).join('');
+
+    // 长期策略
+    const sl = document.getElementById('strategyList');
+    sl.innerHTML = report.long_term_strategy.map(item => `<div class="strategy-item">${item}</div>`).join('');
+}
+
+async function loadHistory() {
+    try {
+        const response = await fetch('/api/diagnostic/history');
+        const data = await response.json();
+        
+        const tbody = document.getElementById('historyBody');
+        tbody.innerHTML = data.map(r => `
+            <tr>
+                <td><strong>${r.brand_name}</strong></td>
+                <td><span class="badge ${r.overall_score >= 60 ? 'badge-green' : 'badge-orange'}">${r.overall_score}</span></td>
+                <td>${r.doubao_score}</td>
+                <td>${r.qianwen_score}</td>
+                <td>${r.wenxin_score}</td>
+                <td>${r.kimi_score}</td>
+                <td>${r.created_at}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error('加载历史失败:', err);
+    }
+}
+
+// 页面加载时自动加载历史
+loadHistory();
+</script>
+{% endblock %}
