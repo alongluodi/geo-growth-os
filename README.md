@@ -7,6 +7,12 @@
 ![python](https://img.shields.io/badge/python-3.9+-3776ab)
 ![flask](https://img.shields.io/badge/flask-3.0-000000)
 
+**仓库地址**（三端同步，代码一致）
+
+- Gitee（主仓）：https://gitee.com/alongluodi/geo-growth-os
+- GitCode：https://gitcode.com/alongluodi/geo-growth-os
+- GitHub：https://github.com/alongluodi/geo-growth-os
+
 <p align="center">
   <img src="docs/screenshots/02-dashboard.png" width="720" alt="主控仪表盘">
 </p>
